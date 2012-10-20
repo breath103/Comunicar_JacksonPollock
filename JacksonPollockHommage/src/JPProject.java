@@ -63,6 +63,7 @@ class PaintInfo {
 	public CGSize screenSize;
 	public Vector currentVelocity = new Vector(0,0,0);
 	public Vector previousVelocity = null;
+	public float previousLineWeight = 50.0f;
 	public PaintInfo(JSONObject json){
 		screenSize = new CGSize(json.getJSONObject("screen"));
 	}
@@ -78,7 +79,6 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	
 	
 	public void setup(){ 
-
 		size(1000,1000); 
 		this.background(0, 0, 0 , 255);
 		smooth();
@@ -147,24 +147,11 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	
 	public void drawPaintInfo(PaintInfo paintInfo){
 		int size = paintInfo.points.size();
-		
-		
-		/*
-		{
-			float v_old;
-			float v;
-			float h;
-			float Vpr = 2v-v_old;
-			float Hpr = 2h-h_old;
-			float Hs = (h+Hpr)/2.0f;
-			for()
-		}
-		*/
-		
+
 		synchronized(paintInfo.points){
 			
-		float lineInertiaFactor = 20.0f;
-		float minlineWeight = 1.0f;
+		float lineInertiaFactor = 40.0f;
+		float minlineWeight = 0.0f;
 		float maxlineWeight = 40.0f;
 		
 		if(size>=4)
@@ -183,19 +170,25 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 				
 				
 				float h = 1;
-				float k = 10;
+				float k = 25;
 				
 				float newLineWeight = //(float)Math.min(Math.max(minlineWeight, 5 / Math.pow(currentVelocity,powFactor)) + this.random( - 2 , 2),maxlineWeight);
-						(float)Math.min(Math.max(minlineWeight, 2*(float)this.sqrt(k*vDelta.getVelocity() / (PI*h))) ,maxlineWeight);
+						(float)Math.min(Math.max(minlineWeight, 2*(float)this.sqrt(k*vDelta.time/vDelta.length() / (PI*h))) ,maxlineWeight);
 				float sx = (float) (width  / paintInfo.screenSize.width);
 				float sy = (float) (height / paintInfo.screenSize.height);
-					
-				
-				strokeWeight( newLineWeight );
+			
+				strokeWeight( (newLineWeight + paintInfo.previousLineWeight) / 2.0f );
 				
 				
 				noFill();
 				stroke(paintInfo.currentColor);
+				//이전 선보다 갑자기 1.5배이상 커진 경우, 
+				if(paintInfo.previousLineWeight < newLineWeight * 1.5f){ 
+					//	stroke(255,0,0);
+					//	newLineWeight = (paintInfo.previousLineWeight +  newLineWeight) / 2.0f;
+				}
+				
+				
 				
 				try{
 					this.bezier(
@@ -206,6 +199,17 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 								paintInfo.currentVelocity.x, paintInfo.points.get(i-2).y * sy  +pointNoiseWithVelocity(currentVelocity) + paintInfo.currentVelocity.y,
 							paintInfo.points.get(i-1).x * sx, paintInfo.points.get(i-1).y * sy
 							);
+					/*
+					beginShape();
+					curveVertex(paintInfo.points.get(i-4).x * sx,paintInfo.points.get(i-4).y * sy); // the first control point
+					curveVertex(paintInfo.points.get(i-3).x * sx +pointNoiseWithVelocity(currentVelocity) + paintInfo.currentVelocity.x,
+								paintInfo.points.get(i-3).y * sy +pointNoiseWithVelocity(currentVelocity) + paintInfo.currentVelocity.y); // is also the start point of curve
+					curveVertex(paintInfo.points.get(i-2).x * sx +pointNoiseWithVelocity(currentVelocity) + paintInfo.currentVelocity.x, 
+								paintInfo.points.get(i-2).y * sy  +pointNoiseWithVelocity(currentVelocity) + paintInfo.currentVelocity.y); // the last point of curve
+					curveVertex(paintInfo.points.get(i-1).x * sx, paintInfo.points.get(i-1).y * sy); // is also the last control point
+					endShape();
+					*/
+					
 				}catch(RuntimeException e){
 					e.printStackTrace();
 				}
@@ -230,15 +234,19 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 				
 				paintInfo.currentVelocity  = vDelta.normalizedVector().multiplyVector(lineInertiaFactor);
 				paintInfo.previousVelocity = vDelta;
+				
+				paintInfo.previousLineWeight = newLineWeight;
 			}
 			paintInfo.points = paintInfo.points.subList(size - 1,size);
 		}
 		}
 	}
 	public void draw(){ 
+	/*
 		for(PaintInfo paintInfo : paintMap.values()){
 			this.drawPaintInfo(paintInfo);
 		}
+		*/
 	} 
 	
 	
@@ -289,22 +297,14 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 					System.out.println("current user : "+paintMap.size());
 				}
 				else if( messageType.compareTo("deviceMotion") == 0){
-	//				System.out.println(cnt++);
-	
-					synchronized(paintMap){
-						PaintInfo paintInfo = paintMap.get(dataJson.getString("id"));
-						try{
-							synchronized(paintInfo.points){
-								paintInfo.points.add(new Vector(dataJson) );
-							}
-								
-							this.redraw = true;
-							//	this.drawPaintInfo(paintInfo);
-						}catch(Exception e){
-							System.out.println("DeviceMotionParse Error  "+ dataJson);
-							e.printStackTrace();
-						}	
-					}
+					PaintInfo paintInfo = paintMap.get(dataJson.getString("id"));
+					try{
+						paintInfo.points.add(new Vector(dataJson) );
+						this.drawPaintInfo(paintInfo);
+					}catch(Exception e){
+						System.out.println("DeviceMotionParse Error  "+ dataJson);
+						e.printStackTrace();
+					}	
 				}
 				else if( messageType.compareTo("paintEnd") == 0){
 					paintMap.remove(dataJson.getString("id"));
