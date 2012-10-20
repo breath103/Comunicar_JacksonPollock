@@ -15,7 +15,7 @@ public class ActionPainting {
 	//float max_line_width = (random(100))+10;
 	float new_size_influence = 0.8f; // .55
 	float mid_point_push = -0.80f;
-	float max_line_width = 80f; // 60
+	float max_line_width = 15.0f; // 60
 	float splat_range = 1.5f;
 	float weight;
 	
@@ -23,9 +23,17 @@ public class ActionPainting {
 	
 	float pinselXY[] = new float[2];
 	float oldPinselXY[] = new float[2];
-	float acceleration = 0;       
+	
+	
+	float acceleration = 10;       
 	int farbFillStatus = 750;     
-
+	
+	boolean isNeedToReset = false;
+	
+	void Reset(){
+		isNeedToReset = true;
+	}
+	
 	ActionPainting(PApplet inMainApplet) {
 		mainApplet = inMainApplet;
 		splatStartXY[0] = inMainApplet.screenWidth/2;
@@ -38,10 +46,21 @@ public class ActionPainting {
 	//////////////////////////////////////////////////////////
 	// LOOP: wird vom Hauptscript aufgerufen
 	//////////////////////////////////////////////////////////
-	public void update(float x,float y,int color) {
+	public void update(float x,float y,int color,float acceleration) {
+		
+		
 		pinselXY[0] = x;
 		pinselXY[1] = y;
+		
+		
+		if(isNeedToReset){
+			oldPinselXY[0] = pinselXY[0] + 1;
+			oldPinselXY[1] = pinselXY[1] + 1;
+			isNeedToReset = false;
+		}
+		
 		this.color = color;
+		this.acceleration = acceleration;
 		
 		mainApplet.noFill();
 		if ((pinselXY[0] != oldPinselXY[0]) && (pinselXY[1] != oldPinselXY[1])) {
@@ -58,8 +77,9 @@ public class ActionPainting {
 				new_size = max_line_width/distance;
 
 				weight = (new_size_influence*new_size)+((1-new_size_influence)*weight);
-				weight = weight /1000 * 750 / 255 * acceleration;
+				weight = weight / 1000 * 750 / 255 * acceleration;
 				weight = mainApplet.min(20, weight);
+				System.out.println("weight : " + weight + " Acc : " + acceleration);
 				if (weight < 0) {
 					weight = 0;
 				}
@@ -67,7 +87,7 @@ public class ActionPainting {
 				if (farbFillStatus < 0) {
 					farbFillStatus = 0;
 				}
-				splat(splatStartXY[0], splatStartXY[1], splatEndXY[0], splatEndXY[1], splatMidXY[0], splatMidXY[1], weight);
+				splat(splatStartXY[0], splatStartXY[1], splatEndXY[0], splatEndXY[1], splatMidXY[0], splatMidXY[1], weight * 100);
 			} 
 		} // end if �nderung erfolgt
 	} // end update()
@@ -79,9 +99,11 @@ public class ActionPainting {
 	void splat(float x1, float y1, float x2, float y2, float x3, float y3, double d) {
 		// tempor�re Variabeln
 		float dd, x4, y4, x5, y5;
+		
+		
 
 		mainApplet.strokeWeight((float)d);
-		mainApplet.println((float)d);
+		//mainApplet.println((float)d);
 		mainApplet.stroke(color);
 
 		mainApplet.curve(x3, y3, x1, y1, x2, y2, x3, y3);	
@@ -89,7 +111,7 @@ public class ActionPainting {
 		splat_range = 1; //1
 		dd = mainApplet.sqrt(mainApplet.pow((x2 - x1), 2) + mainApplet.pow((y2 - y1), 2));
 
-		int anz = mainApplet.floor(mainApplet.random(20) / 255 * acceleration);
+		int anz = mainApplet.floor(mainApplet.random(20) / 255 * acceleration); // hier g-kr�fte aus sensor einbauen
 		for (int i = 0; i<anz; i++) {
 			x4 = dd * 1 * (mainApplet.pow(mainApplet.random(10)/10, splat_range) - (splat_range/2));
 			y4 = dd * 1 * (mainApplet.pow(mainApplet.random(10)/10, splat_range) - (splat_range/2));

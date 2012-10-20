@@ -24,21 +24,77 @@ import net.sf.json.JSONObject;
 
 
 class ColorSample{
-	int r;
-	int g;
-	int b;
-	float weight;
+	private int r;
+	private int g;
+	private int b;
+	private float weight; // 색 가중치
+	public ColorSample(int r, int g, int b, float weight) {
+		super();
+		this.r = r;
+		this.g = g;
+		this.b = b;
+		this.weight = weight;
+	}
+	public int getR() {
+		return r;
+	}
+	public void setR(short r) {
+		this.r = r;
+	}
+	public int getG() {
+		return g;
+	}
+	public void setG(short g) {
+		this.g = g;
+	}
+	public int getB() {
+		return b;
+	}
+	public void setB(short b) {
+		this.b = b;
+	}
+	public float getWeight() {
+		return weight;
+	}
+	public void setWeight(float weight) {
+		this.weight = weight;
+	}
+	
 }
 class ColorEntry{
 	List<ColorSample> colors;
 	ColorEntry() {
 		colors = new ArrayList<ColorSample>();
 	}
+	void addColor(int i,int j,int k,float weight){
+		colors.add(new ColorSample(i,j,k,weight));
+	}
 	void addColor(ColorSample color){
 		colors.add(color);
 	}
+	
 	ColorSample getRandomColor() {
-		return colors.get((int)Math.floor(Math.random() * colors.size()));
+		float totalWeight = 0.0f;
+		for(ColorSample color : colors)
+		{
+			totalWeight += color.getWeight();
+		}
+		
+		double randomValue = Math.random() * totalWeight;
+		
+		float currentWeight = 0.0f;
+		for(ColorSample color : colors)
+		{
+			currentWeight += color.getWeight();
+			if(currentWeight >= randomValue)
+			{
+				return color;
+			}
+		}
+		
+		System.out.println("ERROR!!");
+		return null;
+		//return colors.get((int)Math.floor(Math.random() * colors.size()));
 	}
 }
 
@@ -76,11 +132,13 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	
 	private HashMap<String,PaintInfo> paintMap = new HashMap<String,PaintInfo>();
 	PImage cloudImage;
+	ActionPainting actionPainting = null;
 	
+	int backgroundColor = color(244,185,79,255);
 	
 	public void setup(){ 
 		size(1000,1000); 
-		this.background(0, 0, 0 , 255);
+		this.background(backgroundColor);
 		smooth();
 		try {
 			client = new TCPClient("64.23.73.155",7777,this);
@@ -92,6 +150,7 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 		
 //		cloudImage = loadImage("brush_1.png");
 		System.out.println(cloudImage);
+		actionPainting = new ActionPainting(this);
 	}
 	
 	
@@ -147,102 +206,39 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	
 	public void drawPaintInfo(PaintInfo paintInfo){
 		int size = paintInfo.points.size();
+		float sx = (float) (width  / paintInfo.screenSize.width);
+		float sy = (float) (height / paintInfo.screenSize.height);
 
 		synchronized(paintInfo.points){
-			
-		float lineInertiaFactor = 40.0f;
-		float minlineWeight = 0.0f;
-		float maxlineWeight = 40.0f;
-		
-		if(size>=4)
-		{
-			for(int i=4;i<=size;i+=4){
-				Vector prevPos 	  = paintInfo.points.get(i-2);
-				Vector currentPos = paintInfo.points.get(i-1);
-				Vector vDelta = currentPos.subtractVector(prevPos);
+			if(paintInfo.points.size() > 1)
+			{
+				System.out.println(paintInfo.points.size());
+				float prevVelocity = 0.0f;
+				float prevAcceleration = 0.0f;
 				
-				
-				float currentVelocity = vDelta.getVelocity();
-				
-				if(paintInfo.previousVelocity != null){
-				//	currentVelocity = (currentVelocity + paintInfo.previousVelocity.getVelocity()) / 2.0f; 
-				}
-				
-				
-				float h = 1;
-				float k = 25;
-				
-				float newLineWeight = //(float)Math.min(Math.max(minlineWeight, 5 / Math.pow(currentVelocity,powFactor)) + this.random( - 2 , 2),maxlineWeight);
-						(float)Math.min(Math.max(minlineWeight, 2*(float)this.sqrt(k*vDelta.time/vDelta.length() / (PI*h))) ,maxlineWeight);
-				float sx = (float) (width  / paintInfo.screenSize.width);
-				float sy = (float) (height / paintInfo.screenSize.height);
-			
-				strokeWeight( (newLineWeight + paintInfo.previousLineWeight) / 2.0f );
-				
-				
-				noFill();
-				stroke(paintInfo.currentColor);
-				//이전 선보다 갑자기 1.5배이상 커진 경우, 
-				if(paintInfo.previousLineWeight < newLineWeight * 1.5f){ 
-					//	stroke(255,0,0);
-					//	newLineWeight = (paintInfo.previousLineWeight +  newLineWeight) / 2.0f;
-				}
-				
-				
-				
-				try{
-					this.bezier(
-							paintInfo.points.get(i-4).x * sx,paintInfo.points.get(i-4).y * sy,
-							paintInfo.points.get(i-3).x * sx +pointNoiseWithVelocity(currentVelocity) + 
-								paintInfo.currentVelocity.x, paintInfo.points.get(i-3).y * sy +pointNoiseWithVelocity(currentVelocity) + paintInfo.currentVelocity.y,
-							paintInfo.points.get(i-2).x * sx +pointNoiseWithVelocity(currentVelocity) + 
-								paintInfo.currentVelocity.x, paintInfo.points.get(i-2).y * sy  +pointNoiseWithVelocity(currentVelocity) + paintInfo.currentVelocity.y,
-							paintInfo.points.get(i-1).x * sx, paintInfo.points.get(i-1).y * sy
-							);
+				actionPainting.Reset();
+				for(int i=1;i<paintInfo.points.size();i++)
+				{
+					Vector cp = paintInfo.points.get(i);
+					Vector pp = paintInfo.points.get(i-1);
+					float currentVelocity = cp.subtractVector(pp).getVelocity();
+					float acceleration = currentVelocity-prevVelocity;
+					
 					/*
-					beginShape();
-					curveVertex(paintInfo.points.get(i-4).x * sx,paintInfo.points.get(i-4).y * sy); // the first control point
-					curveVertex(paintInfo.points.get(i-3).x * sx +pointNoiseWithVelocity(currentVelocity) + paintInfo.currentVelocity.x,
-								paintInfo.points.get(i-3).y * sy +pointNoiseWithVelocity(currentVelocity) + paintInfo.currentVelocity.y); // is also the start point of curve
-					curveVertex(paintInfo.points.get(i-2).x * sx +pointNoiseWithVelocity(currentVelocity) + paintInfo.currentVelocity.x, 
-								paintInfo.points.get(i-2).y * sy  +pointNoiseWithVelocity(currentVelocity) + paintInfo.currentVelocity.y); // the last point of curve
-					curveVertex(paintInfo.points.get(i-1).x * sx, paintInfo.points.get(i-1).y * sy); // is also the last control point
-					endShape();
+					acceleration = prevAcceleration + (acceleration - prevAcceleration)/5; 
+					acceleration = min(1000, acceleration);
+					
+					prevAcceleration = acceleration;
 					*/
 					
-				}catch(RuntimeException e){
-					e.printStackTrace();
+					actionPainting.update(cp.x*sx, cp.y*sy, paintInfo.currentColor,acceleration * 100);
 				}
-				
-				
-				
-				if(Math.random() > 0.4){
-					float fDist = currentVelocity * random(0.5f, 1.0f) * 20;
-					Vector vDeltaToCircle = Vector.VectorWithAngle(Math.random() * Math.PI * 2).multiplyVector(fDist);
-					Vector randomPos = paintInfo.points.get(i-1).addVector(vDeltaToCircle);
-					fill(paintInfo.currentColor);
-					noStroke();
-					
-					float factor = 3;
-					float circleRadius = factor * currentVelocity * random(0.5f, 1.0f);
-			
-					this.ellipseMode(CENTER);
-					this.ellipse(randomPos.x*sx, randomPos.y*sy,
-								 factor * sx,factor * sy);
+				paintInfo.points.clear();
 			}
-				
-				
-				paintInfo.currentVelocity  = vDelta.normalizedVector().multiplyVector(lineInertiaFactor);
-				paintInfo.previousVelocity = vDelta;
-				
-				paintInfo.previousLineWeight = newLineWeight;
-			}
-			paintInfo.points = paintInfo.points.subList(size - 1,size);
-		}
 		}
 	}
 	public void draw(){ 
-	/*
+		/*
 		for(PaintInfo paintInfo : paintMap.values()){
 			this.drawPaintInfo(paintInfo);
 		}
@@ -263,7 +259,7 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	
 	@Override 
 	public void mouseClicked(){
-		this.background(0);
+		this.background(backgroundColor);
 	}
 	
 	static int cnt = 0;
@@ -275,24 +271,25 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 				String messageType = message.getString("type");
 				if( messageType.compareTo("paintStart") == 0){
 					PaintInfo newPaint = new PaintInfo(dataJson);
-					int colorEntry[][] = {
-							{255,255,255},
-							{0,0,0},
-							{255,235,0},
-							{1,0,255},
-							{0,130,153},
-							{250,224,212},
-							{0x33,0xCC,0xCC},
-							{152,0,0},
-							{0x99,0xCC,0xFF}
-					};
 					
-					int colorIndex = (int) Math.floor(this.random(colorEntry.length));//Math.random() * colorEntry.length);
-					System.out.println("index : " + colorIndex);
+					ColorEntry colorEntry = new ColorEntry();
+			//		배경-244,185,79 나무색
+
+					colorEntry.addColor(0,0,0,17);
+					colorEntry.addColor(255,255,255,24);
+					colorEntry.addColor(255,246,18,8);
+					colorEntry.addColor(255,18,18,2);
+					colorEntry.addColor(0,0,237,6);
+					colorEntry.addColor(0,0,111,3);
+					colorEntry.addColor(126,213,228,27);
+					colorEntry.addColor(255,112,18,2);
+					colorEntry.addColor(67,116,217,11);
+					
+					ColorSample color = colorEntry.getRandomColor();
 					newPaint.currentColor = color(
-							colorEntry[colorIndex][0],
-							colorEntry[colorIndex][1],
-							colorEntry[colorIndex][2]);//color(random(255),random(255),random(255));
+							color.getR(),
+							color.getG(),
+							color.getB());//color(random(255),random(255),random(255));
 					paintMap.put(dataJson.getString("id"), newPaint);
 					System.out.println("current user : "+paintMap.size());
 				}
