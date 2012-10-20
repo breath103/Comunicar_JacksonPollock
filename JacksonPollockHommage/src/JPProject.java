@@ -231,7 +231,7 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 					prevAcceleration = acceleration;
 					*/
 					
-					actionPainting.update(cp.x*sx, cp.y*sy, paintInfo.currentColor,acceleration * 100);
+					actionPainting.update(cp.x*sx, cp.y*sy, paintInfo.currentColor,acceleration * 100000);
 				}
 				paintInfo.points.clear();
 			}
