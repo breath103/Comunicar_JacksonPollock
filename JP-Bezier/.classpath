@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="lib" path="/Users/breath103/Documents/ProcessingLIB/core.jar"/>
+	<classpathentry kind="lib" path="/Users/breath103/Desktop/JAVA_LIB/commons-beanutils-1.7.0.jar"/>
+	<classpathentry kind="lib" path="/Users/breath103/Desktop/JAVA_LIB/commons-codec-1.6.jar"/>
+	<classpathentry kind="lib" path="/Users/breath103/Desktop/JAVA_LIB/commons-collections-3.2.1.jar"/>
+	<classpathentry kind="lib" path="/Users/breath103/Desktop/JAVA_LIB/commons-httpclient-3.0.1.jar"/>
+	<classpathentry kind="lib" path="/Users/breath103/Desktop/JAVA_LIB/commons-lang-2.5.jar"/>
+	<classpathentry kind="lib" path="/Users/breath103/Desktop/JAVA_LIB/commons-logging-1.0.4.jar"/>
+	<classpathentry kind="lib" path="/Users/breath103/Desktop/JAVA_LIB/commons-logging-1.1.1.jar"/>
+	<classpathentry kind="lib" path="/Users/breath103/Desktop/JAVA_LIB/ezmorph-1.0.4.jar"/>
+	<classpathentry kind="lib" path="/Users/breath103/Desktop/JAVA_LIB/json-lib-2.4-jdk15.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
