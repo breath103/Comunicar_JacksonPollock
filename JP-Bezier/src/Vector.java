@@ -1,8 +1,7 @@
+import processing.core.PVector;
 import net.sf.json.JSONObject;
 
-class Vector{
-	public float x;
-	public float y;
+class Vector extends PVector{
 	public long time;
 	public Vector(float x,float y){
 		this.x = x;

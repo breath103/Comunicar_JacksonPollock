@@ -285,7 +285,8 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 				float prevVelocity = 0.0f;
 				float prevAcceleration = 0.0f;
 				
-				//actionPainting.reset();
+			//  actionPainting.reset();
+			//	actionPainting.needToReset();
 				for(int i=1;i<paintInfo.points.size();i++)
 				{
 					Vector cp = paintInfo.points.get(i);
