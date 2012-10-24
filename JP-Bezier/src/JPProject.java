@@ -13,12 +13,15 @@ import java.io.*;
 import java.net.*; 
 import java.text.*; 
 import java.util.*; 
+import java.util.Map.Entry;
 import java.util.zip.*; 
 import java.util.regex.*; 
 
 import java.util.List;
 
 import java.net.*;
+
+import com.sun.tools.javac.util.Pair;
 
 import net.sf.json.JSONObject;
 
@@ -33,6 +36,12 @@ class ColorSample{
 		this.r = r;
 		this.g = g;
 		this.b = b;
+		this.weight = weight;
+	}
+	public ColorSample(int color,float weight){
+		this.r = (color >> 16) & 0xff;     //bitwise shifting
+        this.g = (color >> 8) & 0xff;
+        this.b = color & 0xff;
 		this.weight = weight;
 	}
 	public int getR() {
@@ -63,6 +72,7 @@ class ColorSample{
 }
 class ColorEntry{
 	List<ColorSample> colors;
+	float totalWeight;
 	ColorEntry() {
 		colors = new ArrayList<ColorSample>();
 	}
@@ -95,6 +105,38 @@ class ColorEntry{
 		System.out.println("ERROR!!");
 		return null;
 		//return colors.get((int)Math.floor(Math.random() * colors.size()));
+	}
+	
+	private void rgb2hsv(int r, int g, int b, int hsv[]) {
+		
+		int min;    //Min. value of RGB
+		int max;    //Max. value of RGB
+		int delMax; //Delta RGB value
+		
+		if (r > g) { min = g; max = r; }
+		else { min = r; max = g; }
+		if (b > max) max = b;
+		if (b < min) min = b;
+								
+		delMax = max - min;
+	 
+		float H = 0, S;
+		float V = max;
+		   
+		if ( delMax == 0 ) { H = 0; S = 0; }
+		else {                                   
+			S = delMax/255f;
+			if ( r == max ) 
+				H = (      (g - b)/(float)delMax)*60;
+			else if ( g == max ) 
+				H = ( 2 +  (b - r)/(float)delMax)*60;
+			else if ( b == max ) 
+				H = ( 4 +  (r - g)/(float)delMax)*60;   
+		}
+								 
+		hsv[0] = (int)(H);
+		hsv[1] = (int)(S*100);
+		hsv[2] = (int)(V*100);
 	}
 }
 
@@ -135,6 +177,35 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	ActionPainting actionPainting = null;
 	
 	int backgroundColor = color(244,185,79,255);
+	ColorEntry randomColorEntry = null;
+	
+	public ColorEntry test_AnalyzeImage(){
+		cloudImage = loadImage("jackson-pollock6.jpeg");
+		HashMap<Integer,Integer> colorset = new HashMap();
+		for(int x =0;x<cloudImage.width;x++){
+			for(int y=0;y<cloudImage.height;y++){
+				Integer color = new Integer(cloudImage.get(x, y));
+				Integer count = colorset.get(color);
+				if(count !=null )
+				{
+					count++;
+					System.out.println("++"+ count);
+				}
+				else
+				{
+					colorset.put(color,new Integer(1));
+				}
+			}
+		}
+		//System.out.println("::"+cloudImage.width * cloudImage.height);
+		System.out.println(colorset.values().size());
+		
+		ColorEntry colorEntry = new ColorEntry();
+		for(Entry<Integer,Integer> e : colorset.entrySet()){
+			colorEntry.addColor(new ColorSample(e.getKey(),e.getValue()));
+		}
+		return colorEntry;
+	}
 	
 	public void setup(){ 
 		size(1000,1000); 
@@ -151,6 +222,7 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 //		cloudImage = loadImage("brush_1.png");
 		System.out.println(cloudImage);
 		actionPainting = new ActionPainting(this);
+		randomColorEntry = this.test_AnalyzeImage();
 	}
 	
 	
@@ -233,11 +305,9 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 		}
 	}
 	public void draw(){ 
-		/*
 		for(PaintInfo paintInfo : paintMap.values()){
 			this.drawPaintInfo(paintInfo);
 		}
-		*/
 	} 
 	
 	
@@ -266,7 +336,7 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 				String messageType = message.getString("type");
 				if( messageType.compareTo("paintStart") == 0){
 					PaintInfo newPaint = new PaintInfo(dataJson);
-					
+					/*
 					ColorEntry colorEntry = new ColorEntry();
 			//		배경-244,185,79 나무색
 
@@ -279,8 +349,10 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 					colorEntry.addColor(126,213,228,27);
 					colorEntry.addColor(255,112,18,2);
 					colorEntry.addColor(67,116,217,11);
+					*/
 					
-					ColorSample color = colorEntry.getRandomColor();
+					ColorSample color = randomColorEntry.getRandomColor();
+					System.out.println(color.getB() + " " + color.getG() + " " +  color.getB());
 					newPaint.currentColor = color(color.getR(),color.getG(),color.getB());
 					paintMap.put(dataJson.getString("id"), newPaint);
 					System.out.println("current user : "+paintMap.size());
@@ -289,7 +361,7 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 					PaintInfo paintInfo = paintMap.get(dataJson.getString("id"));
 					try{
 						paintInfo.points.add(new Vector(dataJson) );
-						this.drawPaintInfo(paintInfo);
+					//	this.drawPaintInfo(paintInfo);
 					}catch(Exception e){
 						System.out.println("DeviceMotionParse Error  "+ dataJson);
 						e.printStackTrace();

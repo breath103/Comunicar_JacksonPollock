@@ -54,12 +54,12 @@ class TCPClient implements Runnable {
 
 	@Override
 	public void run() {
-		String data;
+		String data = null;
 		try {
 			while ((data = bufferedReader.readLine()) != null) {
 				delegate.onReceiveMessage(data);
 			}
-		} catch (IOException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

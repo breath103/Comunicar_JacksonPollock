@@ -41,7 +41,7 @@ public class ActionPainting {
 }
 	public void splat(PVector v1,PVector v2,PVector v3,float d,int color){
 		
-		app.stroke(color * app.random(0.9f, 1.1f) ,app.random(200,255));
+		app.stroke(color /* app.random(0.9f, 1.1f)*/ ,app.random(200,255));
 		app.strokeWeight(d);
 		app.noFill();
 		
@@ -68,7 +68,7 @@ public class ActionPainting {
 									 (float)(Math.random() - 0.5));
 			float d_ = (float) (d*(0.5+Math.random()));
 			
-			app.stroke(color * app.random(0.9f, 1.1f) ,app.random(200,255));
+			app.stroke(color /* app.random(0.9f, 1.1f) */,app.random(200,255));
 			app.strokeWeight(d_);
 			app.noFill();
 		
