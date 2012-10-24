@@ -189,7 +189,6 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 				if(count !=null )
 				{
 					count++;
-					System.out.println("++"+ count);
 				}
 				else
 				{
@@ -197,8 +196,6 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 				}
 			}
 		}
-		//System.out.println("::"+cloudImage.width * cloudImage.height);
-		System.out.println(colorset.values().size());
 		
 		ColorEntry colorEntry = new ColorEntry();
 		for(Entry<Integer,Integer> e : colorset.entrySet()){
@@ -336,21 +333,7 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 				String messageType = message.getString("type");
 				if( messageType.compareTo("paintStart") == 0){
 					PaintInfo newPaint = new PaintInfo(dataJson);
-					/*
-					ColorEntry colorEntry = new ColorEntry();
-			//		배경-244,185,79 나무색
-
-					colorEntry.addColor(0,0,0,17);
-					colorEntry.addColor(255,255,255,24);
-					colorEntry.addColor(255,246,18,8);
-					colorEntry.addColor(255,18,18,2);
-					colorEntry.addColor(0,0,237,6);
-					colorEntry.addColor(0,0,111,3);
-					colorEntry.addColor(126,213,228,27);
-					colorEntry.addColor(255,112,18,2);
-					colorEntry.addColor(67,116,217,11);
-					*/
-					
+				
 					ColorSample color = randomColorEntry.getRandomColor();
 					System.out.println(color.getB() + " " + color.getG() + " " +  color.getB());
 					newPaint.currentColor = color(color.getR(),color.getG(),color.getB());
@@ -361,7 +344,6 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 					PaintInfo paintInfo = paintMap.get(dataJson.getString("id"));
 					try{
 						paintInfo.points.add(new Vector(dataJson) );
-					//	this.drawPaintInfo(paintInfo);
 					}catch(Exception e){
 						System.out.println("DeviceMotionParse Error  "+ dataJson);
 						e.printStackTrace();
