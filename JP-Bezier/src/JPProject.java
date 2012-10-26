@@ -68,7 +68,6 @@ class ColorSample{
 	public void setWeight(float weight) {
 		this.weight = weight;
 	}
-	
 }
 class ColorEntry{
 	List<ColorSample> colors;
@@ -85,8 +84,7 @@ class ColorEntry{
 	
 	ColorSample getRandomColor() {
 		float totalWeight = 0.0f;
-		for(ColorSample color : colors)
-		{
+		for(ColorSample color : colors){
 			totalWeight += color.getWeight();
 		}
 		
@@ -104,7 +102,6 @@ class ColorEntry{
 		
 		System.out.println("ERROR!!");
 		return null;
-		//return colors.get((int)Math.floor(Math.random() * colors.size()));
 	}
 	
 	private void rgb2hsv(int r, int g, int b, int hsv[]) {
@@ -162,6 +159,7 @@ class PaintInfo {
 	public Vector currentVelocity = new Vector(0,0,0);
 	public Vector previousVelocity = null;
 	public float previousLineWeight = 50.0f;
+	public ActionPainting renderer;
 	public PaintInfo(JSONObject json){
 		screenSize = new CGSize(json.getJSONObject("screen"));
 	}
@@ -176,22 +174,21 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	PImage cloudImage;
 	ActionPainting actionPainting = null;
 	
-	int backgroundColor = color(244,185,79,255);
+	int backgroundColor = color(0,0,0,255);
 	ColorEntry randomColorEntry = null;
 	
+	PrintWriter fileWriter;
 	public ColorEntry test_AnalyzeImage(){
-		cloudImage = loadImage("jackson-pollock6.jpeg");
+		cloudImage = loadImage("4.png");
 		HashMap<Integer,Integer> colorset = new HashMap();
 		for(int x =0;x<cloudImage.width;x++){
 			for(int y=0;y<cloudImage.height;y++){
 				Integer color = new Integer(cloudImage.get(x, y));
 				Integer count = colorset.get(color);
-				if(count !=null )
-				{
+				if(count !=null ){
 					count++;
 				}
-				else
-				{
+				else{
 					colorset.put(color,new Integer(1));
 				}
 			}
@@ -205,7 +202,7 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	}
 	
 	public void setup(){ 
-		size(1000,1000); 
+		size(1600,1200); 
 		this.background(backgroundColor);
 		smooth();
 		try {
@@ -216,10 +213,20 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 			e.printStackTrace();
 		}
 		
-//		cloudImage = loadImage("brush_1.png");
 		System.out.println(cloudImage);
 		actionPainting = new ActionPainting(this);
 		randomColorEntry = this.test_AnalyzeImage();
+		
+		try {
+			fileWriter = new PrintWriter("log"+System.currentTimeMillis(), "UTF-8");
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 	
 	
@@ -244,19 +251,7 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	}
 	
 	public void drawRandomCloud(float cx,float cy,float radius){
-		/*
-		translate(cx,cy);
-		rotate( random(2 * PI) );
-		scale(radius / cloudImage.width);
-		
-		
-		imageMode(CENTER);
-		image(cloudImage,0,0);
-		
-		translate(0,0);
-		scale(1);
-		rotate(0);
-		*/
+	
 	}
 	
 	public void DEBUG_drawPaintInfoPoints(PaintInfo paintInfo){
@@ -296,7 +291,8 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 					
 					
 					PVector scaledPos = new PVector(cp.x*sx, cp.y*sy);
-					actionPainting.draw(scaledPos, paintInfo.currentColor);
+					paintInfo.renderer.draw(scaledPos, paintInfo.currentColor);
+					//	actionPainting.draw(scaledPos, paintInfo.currentColor);
 				}
 				paintInfo.points.clear();
 			}
@@ -325,15 +321,25 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 		this.background(backgroundColor);
 	}
 	
+	public void stop(){
+		super.stop();
+		fileWriter.close();
+	}
+	
 	static int cnt = 0;
 	public void onReceiveMessage(String strMsg) {
 		for(String data : strMsg.split("\r\n")){
 			try{
 				JSONObject message = JSONObject.fromObject(data);
+				
+				
+				fileWriter.println(data);
+				
 				JSONObject dataJson = message.getJSONObject("data");
 				String messageType = message.getString("type");
 				if( messageType.compareTo("paintStart") == 0){
 					PaintInfo newPaint = new PaintInfo(dataJson);
+					newPaint.renderer = new ActionPainting(this);
 				
 					ColorSample color = randomColorEntry.getRandomColor();
 					System.out.println(color.getB() + " " + color.getG() + " " +  color.getB());

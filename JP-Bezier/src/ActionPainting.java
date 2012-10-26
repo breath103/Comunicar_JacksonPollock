@@ -45,7 +45,7 @@ public class ActionPainting {
 		vEnd = vNew;
 		
 		float distance = Math.max(vStart.dist(vEnd),1);
-		float new_size = max_line_width / distance * 2.0f;
+		float new_size = max_line_width / distance * 1.3f;
 		size = (new_size_influence * new_size) + ((1 - new_size_influence) * size);
 		splat(vStart,vEnd,vMid,size,color);
 		parity = false;
