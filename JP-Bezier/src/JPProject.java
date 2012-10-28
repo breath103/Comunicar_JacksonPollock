@@ -5,6 +5,7 @@ import processing.xml.*;
 import java.applet.*; 
 import java.awt.Dimension; 
 import java.awt.Frame; 
+import java.awt.Toolkit;
 import java.awt.event.MouseEvent; 
 import java.awt.event.KeyEvent; 
 import java.awt.event.FocusEvent; 
@@ -44,30 +45,14 @@ class ColorSample{
         this.b = color & 0xff;
 		this.weight = weight;
 	}
-	public int getR() {
-		return r;
-	}
-	public void setR(short r) {
-		this.r = r;
-	}
-	public int getG() {
-		return g;
-	}
-	public void setG(short g) {
-		this.g = g;
-	}
-	public int getB() {
-		return b;
-	}
-	public void setB(short b) {
-		this.b = b;
-	}
-	public float getWeight() {
-		return weight;
-	}
-	public void setWeight(float weight) {
-		this.weight = weight;
-	}
+	public int getR() { return r;}
+	public void setR(short r) { this.r = r; }
+	public int getG() { return g; }
+	public void setG(short g) {this.g = g;}
+	public int getB() {return b;}
+	public void setB(short b) {this.b = b;}
+	public float getWeight() {return weight;}
+	public void setWeight(float weight) {this.weight = weight;}
 }
 class ColorEntry{
 	List<ColorSample> colors;
@@ -103,41 +88,7 @@ class ColorEntry{
 		System.out.println("ERROR!!");
 		return null;
 	}
-	
-	private void rgb2hsv(int r, int g, int b, int hsv[]) {
-		
-		int min;    //Min. value of RGB
-		int max;    //Max. value of RGB
-		int delMax; //Delta RGB value
-		
-		if (r > g) { min = g; max = r; }
-		else { min = r; max = g; }
-		if (b > max) max = b;
-		if (b < min) min = b;
-								
-		delMax = max - min;
-	 
-		float H = 0, S;
-		float V = max;
-		   
-		if ( delMax == 0 ) { H = 0; S = 0; }
-		else {                                   
-			S = delMax/255f;
-			if ( r == max ) 
-				H = (      (g - b)/(float)delMax)*60;
-			else if ( g == max ) 
-				H = ( 2 +  (b - r)/(float)delMax)*60;
-			else if ( b == max ) 
-				H = ( 4 +  (r - g)/(float)delMax)*60;   
-		}
-								 
-		hsv[0] = (int)(H);
-		hsv[1] = (int)(S*100);
-		hsv[2] = (int)(V*100);
-	}
 }
-
-
 
 class CGSize{
 	public double width;
@@ -150,7 +101,6 @@ class CGSize{
 		this(json.getDouble("width"),json.getDouble("height"));
 	}
 }
-
 
 class PaintInfo {
 	public int currentColor;
@@ -202,7 +152,10 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	}
 	
 	public void setup(){ 
-		size(1600,1200); 
+		Toolkit toolkit = Toolkit.getDefaultToolkit();
+		Dimension scrnsize = toolkit.getScreenSize();
+		//size(scrnsize.width,scrnsize.height); 
+		this.size(1000,1000);
 		this.background(backgroundColor);
 		smooth();
 		try {
@@ -247,7 +200,6 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	float pointNoiseWithVelocity(float v){
 		float k = 5.0f;
 		return (float)this.random((float)-Math.pow(v,1) * k,(float)Math.pow(v,1) * k);
-//		return 0.0f;
 	}
 	
 	public void drawRandomCloud(float cx,float cy,float radius){
@@ -276,12 +228,9 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 		synchronized(paintInfo.points){
 			if(paintInfo.points.size() > 1)
 			{
-			//	System.out.println(paintInfo.points.size());
 				float prevVelocity = 0.0f;
 				float prevAcceleration = 0.0f;
 				
-			//  actionPainting.reset();
-			//	actionPainting.needToReset();
 				for(int i=1;i<paintInfo.points.size();i++)
 				{
 					Vector cp = paintInfo.points.get(i);
@@ -292,7 +241,6 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 					
 					PVector scaledPos = new PVector(cp.x*sx, cp.y*sy);
 					paintInfo.renderer.draw(scaledPos, paintInfo.currentColor);
-					//	actionPainting.draw(scaledPos, paintInfo.currentColor);
 				}
 				paintInfo.points.clear();
 			}
@@ -300,7 +248,9 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	}
 	public void draw(){ 
 		for(PaintInfo paintInfo : paintMap.values()){
-			this.drawPaintInfo(paintInfo);
+			synchronized(paintInfo){
+				this.drawPaintInfo(paintInfo);
+			}
 		}
 	} 
 	
@@ -349,12 +299,17 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 				}
 				else if( messageType.compareTo("deviceMotion") == 0){
 					PaintInfo paintInfo = paintMap.get(dataJson.getString("id"));
-					try{
-						paintInfo.points.add(new Vector(dataJson) );
-					}catch(Exception e){
-						System.out.println("DeviceMotionParse Error  "+ dataJson);
-						e.printStackTrace();
-					}	
+					synchronized(paintInfo){
+						try{
+							paintInfo.points.add(new Vector(dataJson) );
+						}catch(Exception e){
+							System.out.println("DeviceMotionParse Error  "+ dataJson);
+							System.out.println("DeviceMotionParse Error  "+ paintInfo);
+							System.out.println("DeviceMotionParse Error  "+ paintInfo.points);
+							
+							e.printStackTrace();
+						}	
+					}
 				}
 				else if( messageType.compareTo("paintEnd") == 0){
 					paintMap.remove(dataJson.getString("id"));
