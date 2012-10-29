@@ -8,18 +8,21 @@ public class ActionPainting {
 	PVector vStart,vMid,vEnd;
 	boolean parity;
 	float size;
-	
-	boolean isNeedToReset = false;
-
 	float new_size_influence, mid_point_push, max_line_width;
-	public ActionPainting(PApplet app){
+	public ActionPainting(PApplet app,PVector vStartPos){
 		this.app = app;
-		this.reset();
+		this.reset(vStartPos);
 	}
-	public void reset(){
+	public void reset(PVector vStartPos){
+		/*
 		vStart = new PVector(app.width/2,app.height/2);
 		vMid   = new PVector(app.width/2,app.height/2);
 		vEnd   = new PVector(app.width/2,app.height/2);
+		*/
+		vStart = new PVector(vStartPos.x,vStartPos.y);
+		vMid   = new PVector(vStartPos.x,vStartPos.y);
+		vEnd   = new PVector(vStartPos.x,vStartPos.y);
+		
 		parity = false;
 		size = 0;
 		
@@ -27,16 +30,7 @@ public class ActionPainting {
 		mid_point_push = 0.5f;
 		max_line_width = 200.0f;
 	}
-	public void needToReset(){
-		isNeedToReset = true;
-	}
 	public void draw(PVector vNew,int color){
-		if(isNeedToReset){
-			vStart = vNew;
-			vEnd   = vNew;
-			isNeedToReset = false;
-		}
-		
 		vMid = PVector.add(PVector.mult(PVector.sub(vEnd, vStart),(1 + mid_point_push)),vStart);
 		vStart = vEnd;
 		vEnd = vNew;
@@ -48,7 +42,7 @@ public class ActionPainting {
 		parity = false;
 	}
 	public void splat(PVector v1,PVector v2,PVector v3,float d,int color){
-		app.stroke(color,app.random(200,255));
+		app.stroke(color,app.random(200,255)); //투명도를 랜덤으로 준다
 		app.strokeWeight(d);
 		app.noFill();
 		

@@ -1,7 +1,5 @@
 import processing.core.*; 
-
 import processing.xml.*; 
-
 import java.applet.*; 
 import java.awt.Dimension; 
 import java.awt.Frame; 
@@ -19,82 +17,15 @@ import java.util.zip.*;
 import java.util.regex.*; 
 
 import java.util.List;
-
 import java.net.*;
-
 import com.sun.tools.javac.util.Pair;
-
 import net.sf.json.JSONObject;
-
-
-class ColorSample{
-	private int r;
-	private int g;
-	private int b;
-	private float weight; // 색 가중치
-	public ColorSample(int r, int g, int b, float weight) {
-		super();
-		this.r = r;
-		this.g = g;
-		this.b = b;
-		this.weight = weight;
-	}
-	public ColorSample(int color,float weight){
-		this.r = (color >> 16) & 0xff;     //bitwise shifting
-        this.g = (color >> 8) & 0xff;
-        this.b = color & 0xff;
-		this.weight = weight;
-	}
-	public int getR() { return r;}
-	public void setR(short r) { this.r = r; }
-	public int getG() { return g; }
-	public void setG(short g) {this.g = g;}
-	public int getB() {return b;}
-	public void setB(short b) {this.b = b;}
-	public float getWeight() {return weight;}
-	public void setWeight(float weight) {this.weight = weight;}
-}
-class ColorEntry{
-	List<ColorSample> colors;
-	float totalWeight;
-	ColorEntry() {
-		colors = new ArrayList<ColorSample>();
-	}
-	void addColor(int i,int j,int k,float weight){
-		colors.add(new ColorSample(i,j,k,weight));
-	}
-	void addColor(ColorSample color){
-		colors.add(color);
-	}
-	
-	ColorSample getRandomColor() {
-		float totalWeight = 0.0f;
-		for(ColorSample color : colors){
-			totalWeight += color.getWeight();
-		}
-		
-		double randomValue = Math.random() * totalWeight;
-		
-		float currentWeight = 0.0f;
-		for(ColorSample color : colors)
-		{
-			currentWeight += color.getWeight();
-			if(currentWeight >= randomValue)
-			{
-				return color;
-			}
-		}
-		
-		System.out.println("ERROR!!");
-		return null;
-	}
-}
 
 class CGSize{
 	public double width;
 	public double height;
 	public CGSize(double w,double h){
-		this.width = w;
+		this.width  = w;
 		this.height = h;
 	}
 	public CGSize(JSONObject json){
@@ -103,16 +34,17 @@ class CGSize{
 }
 
 class PaintInfo {
-	public int currentColor;
+	private int color;
 	public List<Vector> points = new ArrayList<Vector>();	
 	public CGSize screenSize;
-	public Vector currentVelocity = new Vector(0,0,0);
-	public Vector previousVelocity = null;
-	public float previousLineWeight = 50.0f;
 	public ActionPainting renderer;
-	public PaintInfo(JSONObject json){
+	
+	public PaintInfo(JSONObject json,int color){
+		this.color= color;
 		screenSize = new CGSize(json.getJSONObject("screen"));
 	}
+	
+	public int getColor() { return color;}
 }
 
 
@@ -122,9 +54,8 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 	
 	private HashMap<String,PaintInfo> paintMap = new HashMap<String,PaintInfo>();
 	PImage cloudImage;
-	ActionPainting actionPainting = null;
 	
-	int backgroundColor = color(0,0,0,255);
+	int backgroundColor = color(255,255,255,255);
 	ColorEntry randomColorEntry = null;
 	
 	PrintWriter fileWriter;
@@ -167,7 +98,6 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 		}
 		
 		System.out.println(cloudImage);
-		actionPainting = new ActionPainting(this);
 		randomColorEntry = this.test_AnalyzeImage();
 		
 		try {
@@ -217,7 +147,6 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 			this.stroke(color(0));
 			this.point(pos.x * sx, pos.y * sy);
 		}
-		
 	}
 	
 	public void drawPaintInfo(PaintInfo paintInfo){
@@ -238,9 +167,14 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 					float currentVelocity = cp.subtractVector(pp).getVelocity();
 					float acceleration = currentVelocity-prevVelocity;
 					
-					
 					PVector scaledPos = new PVector(cp.x*sx, cp.y*sy);
-					paintInfo.renderer.draw(scaledPos, paintInfo.currentColor);
+					
+					
+					if(paintInfo.renderer == null){
+						paintInfo.renderer = new ActionPainting(this,new PVector(cp.x*sx + this.random(-0.5f, 0.5f)*this.screenWidth , 
+																				 cp.y*sy + this.random(-0.5f, 0.5f)*this.screenHeight));
+					}
+					paintInfo.renderer.draw(scaledPos, paintInfo.getColor());
 				}
 				paintInfo.points.clear();
 			}
@@ -276,25 +210,26 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 		fileWriter.close();
 	}
 	
+	public int toRGB(ColorSample color){
+		return color(color.getR(),color.getG(),color.getB());
+	}
+	
 	static int cnt = 0;
 	public void onReceiveMessage(String strMsg) {
 		for(String data : strMsg.split("\r\n")){
 			try{
 				JSONObject message = JSONObject.fromObject(data);
 				
-				
 				fileWriter.println(data);
 				
 				JSONObject dataJson = message.getJSONObject("data");
 				String messageType = message.getString("type");
-				if( messageType.compareTo("paintStart") == 0){
-					PaintInfo newPaint = new PaintInfo(dataJson);
-					newPaint.renderer = new ActionPainting(this);
 				
-					ColorSample color = randomColorEntry.getRandomColor();
-					System.out.println(color.getB() + " " + color.getG() + " " +  color.getB());
-					newPaint.currentColor = color(color.getR(),color.getG(),color.getB());
+				if( messageType.compareTo("paintStart") == 0){
+					PaintInfo newPaint = new PaintInfo(dataJson,toRGB(randomColorEntry.getRandomColor()));
+				
 					paintMap.put(dataJson.getString("id"), newPaint);
+					
 					System.out.println("current user : "+paintMap.size());
 				}
 				else if( messageType.compareTo("deviceMotion") == 0){
@@ -303,10 +238,6 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 						try{
 							paintInfo.points.add(new Vector(dataJson) );
 						}catch(Exception e){
-							System.out.println("DeviceMotionParse Error  "+ dataJson);
-							System.out.println("DeviceMotionParse Error  "+ paintInfo);
-							System.out.println("DeviceMotionParse Error  "+ paintInfo.points);
-							
 							e.printStackTrace();
 						}	
 					}
