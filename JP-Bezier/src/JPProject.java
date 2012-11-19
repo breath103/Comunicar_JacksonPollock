@@ -1,8 +1,11 @@
 import processing.core.*; 
-import processing.xml.*; 
+import processing.xml.*;
+import processing.opengl.*;
 import java.applet.*; 
 import java.awt.Dimension; 
 import java.awt.Frame; 
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import java.awt.Toolkit;
 import java.awt.event.MouseEvent; 
 import java.awt.event.KeyEvent; 
@@ -38,7 +41,6 @@ class PaintInfo {
 	public List<Vector> points = new ArrayList<Vector>();	
 	public CGSize screenSize;
 	public ActionPainting renderer;
-	
 	public PaintInfo(JSONObject json,int color){
 		this.color= color;
 		screenSize = new CGSize(json.getJSONObject("screen"));
@@ -51,23 +53,23 @@ class PaintInfo {
 public class JPProject extends PApplet implements TCPClientDelegate{
 	private TCPClient client;
 	private float powFactor = 0.8f;
-	
 	private HashMap<String,PaintInfo> paintMap = new HashMap<String,PaintInfo>();
 	PImage cloudImage;
-	
-	int backgroundColor = color(255,255,255,255);
+	PImage qrCode;
+	int backgroundColor = color(0,0,0,255);
 	ColorEntry randomColorEntry = null;
 	
 	PrintWriter fileWriter;
 	public ColorEntry test_AnalyzeImage(){
-		cloudImage = loadImage("4.png");
+		cloudImage = loadImage("1.png");
+		qrCode     = loadImage("qrcode.png");
 		HashMap<Integer,Integer> colorset = new HashMap();
 		for(int x =0;x<cloudImage.width;x++){
 			for(int y=0;y<cloudImage.height;y++){
 				Integer color = new Integer(cloudImage.get(x, y));
 				Integer count = colorset.get(color);
 				if(count !=null ){
-					count++;
+					count++;	
 				}
 				else{
 					colorset.put(color,new Integer(1));
@@ -81,19 +83,44 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 		}
 		return colorEntry;
 	}
-	
-	public void setup(){ 
+	public void init(){
+		/*
+		/// to make a frame not displayable, you can 
+		 // use frame.removeNotify() 
+		 frame.removeNotify(); 
+			 
+		// frame.setUndecorated(true); 
+		 this.setVisible(false);
+			GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+			if (gd.isFullScreenSupported()) {
+		    	this.frame.setUndecorated(true);
+		        gd.setFullScreenWindow(this.frame);
+		    } else {
+		        System.err.println("Full screen not supported");
+		    }
+		    this.setVisible(true);
+			
+			
+			 
+		 // addNotify, here i am not sure if you have  
+		 // to add notify again.   
+		 frame.addNotify(); 
+		 */
+		 super.init();
+}
+	public void setup(){
+		
 		Toolkit toolkit = Toolkit.getDefaultToolkit();
-		Dimension scrnsize = toolkit.getScreenSize();
-		//size(scrnsize.width,scrnsize.height); 
-		this.size(1000,1000);
+		Dimension screenSize  = toolkit.getScreenSize();
+	//	this.size((int)screenSize.getWidth(),(int)screenSize.getHeight()); 
+		this.size(1280,1024);
 		this.background(backgroundColor);
+		
 		smooth();
 		try {
 			client = new TCPClient("64.23.73.155",7777,this);
 			System.out.println(client);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -103,10 +130,8 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 		try {
 			fileWriter = new PrintWriter("log"+System.currentTimeMillis(), "UTF-8");
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -181,11 +206,18 @@ public class JPProject extends PApplet implements TCPClientDelegate{
 		}
 	}
 	public void draw(){ 
+		this.smooth();
 		for(PaintInfo paintInfo : paintMap.values()){
 			synchronized(paintInfo){
 				this.drawPaintInfo(paintInfo);
 			}
 		}
+		this.noSmooth();
+		float scale = 2.0f;
+		this.image(qrCode, 0, 0,64 * scale,64*scale);
+		String s = "http://64.23.73.155:8001/";
+		fill(50);
+		text(s, 0, 0, 64*scale , 50);  // Text wraps within text box
 	} 
 	
 	
